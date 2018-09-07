@@ -1,0 +1,84 @@
+implementation of idash 2018 (http://www.humangenomeprivacy.org/2018/competition-tasks.html)
+Track 1: Blockchain-based immutable logging and querying for cross-site genomic dataset access audit trial
+The goal of this track is to develop blockchain-based ledgering solutions to log and query the user activities of accessing genomic datasets (e.g., GTEx) across multiple sites.
+
+our implementation is in python, and resides in the two files:
+log_to_blockchain.py
+query_blockchain.py
+
+there is one dependency, called Savoir, which is a python binding
+for multichain rpc calls, we have placed Savoir.tar.gz on each node,
+as well as extracted this file at /home/team on each node, resulting
+in the directory /home/team/Savoir, such that 'from Savoir import Savoir'
+works for python files executing from /home/team, in other words you
+don't need to do anything additional to install Savoir if you run things
+as they stand right now
+
+insert.sh invokes log_to_blockchain.py in a fairly standard fashion, where
+the only real peculiarity is that it specifies a target number of insertions
+per second, which was decided upon via testing, as inserting more quickly
+seems to cause the multichain p2p network traffic to overwhelm the four
+nodes causing socket issues which sometimes island nodes, we've never seen
+any issues running with the target number of records per second being 20, and
+thus insertion of 100000 records should take 5000s, i.e. ~1h23m, and don't
+be alarmed by the console print lines emitted during insertion, as the rate
+of insertion is rate limited enough that the interaction with stdout does 
+nothing to slow down the process
+
+query.sh basically invokes log_to_blockchain as a passthrough, here are some
+times that we observe on the sample data, just for reference
+==
+time ./query.sh --ref_id 9
+1324 records returned
+real    0m1.768s
+user    0m1.936s
+sys     0m0.236s
+==
+time ./query.sh --ref_id 74814
+2542 records returned
+real    0m2.855s
+user    0m3.036s
+sys     0m0.320s
+==
+time ./query.sh --node 1 --ref_id 3 --user 6 --activity VIEW_RESOURCE --sort_by activity
+1 record returned
+real    0m0.224s
+user    0m0.156s
+sys     0m0.056s
+==
+time ./query.sh --node 1 --ref_id 3 --user 6 --activity FILE_ACCESS --sort_by node
+10040 records returned
+real    0m37.849s
+user    0m45.672s
+sys     0m3.796s
+==
+time ./query.sh --activity FILE_ACCESS --start_time 1522013089593 --end_time 1522017053442 --sort_by node
+3194 records returned
+real    0m4.056s
+user    0m5.056s
+sys     0m0.472s
+==
+time ./query.sh --activity FILE_ACCESS --start_time 1522013089593 --end_time 1522017059000
+3199 records returned
+real    0m3.780s
+user    0m4.516s
+sys     0m0.408s
+==
+time ./query.sh --activity FILE_ACCESS --start_time 1522013089500 --end_time 1522017058956
+3199 records returned
+real    0m3.947s
+user    0m4.824s
+sys     0m0.496s
+==
+time ./query.sh --activity FILE_ACCESS --start_time 1522013089500 --end_time 1522017059000 --sort_by resource
+3199 records returned
+real    0m3.650s
+user    0m4.452s
+sys     0m0.420s
+==
+time ./query.sh --node 3 --start_time 1522013089593 --end_time 1522017053442 --sort_by node
+797 records returned
+real    0m0.973s
+user    0m1.076s
+sys     0m0.116s
+
